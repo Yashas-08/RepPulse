@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Color System - Premium Monochrome */
+  --color-primary-text: #111111; /* Jet Black */
+  --color-primary-brand: #111111; /* Jet Black for Primary Buttons */
+  --color-secondary-accent: #6B7280; /* Slate Gray */
+  --color-bg-snow: #FAFAFA; /* Off White Secondary Background */
+  --color-card-pure: #FFFFFF; /* Pure White Card Background */
+  --color-border-cool: #E5E7EB; /* Light Gray Borders */
+  --color-secondary-text: #6B7280; /* Slate Gray Secondary Text */
+  --color-success-emerald: #10B981; /* Emerald Green */
+  --color-warning-amber: #F59E0B; /* Amber */
+  --color-danger-coral: #EF4444; /* Coral Red */
+  --color-divider-silver: #F3F4F6; /* Very Light Gray Dividers */
+}
+
+html, body {
+  font-family: var(--font-sans);
+  background-color: #0A0A0A; /* Deep dark void space for the interactive phone demo container */
+  color: var(--color-primary-text);
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Premium smooth animations and overrides */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
