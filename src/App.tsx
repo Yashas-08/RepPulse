@@ -21,12 +21,25 @@ import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NotFoundScreen } from './screens/NotFoundScreen';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 
+const isTouchCapableDevice = () => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return false;
+  }
+
+  const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  const hasNoHover = window.matchMedia('(hover: none)').matches;
+  const hasTouchPoints = navigator.maxTouchPoints > 0;
+
+  return hasCoarsePointer || hasNoHover || hasTouchPoints;
+};
+
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<ScreenType>('splash');
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [lockedBanner, setLockedBanner] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [shouldRenderPhoneFrame, setShouldRenderPhoneFrame] = useState(() => !isTouchCapableDevice());
 
   // Monitor network connectivity changes & handle unhandled network rejections
   useEffect(() => {
@@ -78,6 +91,44 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQueries = [
+      window.matchMedia('(pointer: coarse)'),
+      window.matchMedia('(hover: none)'),
+    ];
+
+    const updateDeviceLayout = () => {
+      setShouldRenderPhoneFrame(!isTouchCapableDevice());
+    };
+
+    updateDeviceLayout();
+
+    mediaQueries.forEach((mediaQuery) => {
+      if (typeof mediaQuery.addEventListener === 'function') {
+        mediaQuery.addEventListener('change', updateDeviceLayout);
+      } else {
+        mediaQuery.addListener(updateDeviceLayout);
+      }
+    });
+
+    window.addEventListener('resize', updateDeviceLayout);
+
+    return () => {
+      mediaQueries.forEach((mediaQuery) => {
+        if (typeof mediaQuery.removeEventListener === 'function') {
+          mediaQuery.removeEventListener('change', updateDeviceLayout);
+        } else {
+          mediaQuery.removeListener(updateDeviceLayout);
+        }
+      });
+      window.removeEventListener('resize', updateDeviceLayout);
+    };
+  }, []);
+
   // Helper to determine if we are in the primary app section (requiring bottom navigation)
   const isAppSection = [
     'dashboard',
@@ -106,6 +157,10 @@ export default function App() {
       const startTime = Date.now();
       let targetScreen: ScreenType = 'login';
       try {
+        if (!supabase) {
+          throw new Error('Supabase client is not available');
+        }
+
         const sessionRes = await supabase.auth.getSession().catch(() => ({ data: { session: null }, error: null }));
         const session = sessionRes?.data?.session;
         if (session?.user) {
@@ -223,8 +278,8 @@ export default function App() {
     }
   };
 
-  return (
-    <PhoneFrame activeScreen={activeScreen} onScreenChange={handleScreenChange}>
+  const appContent = (
+    <>
       {/* MAIN ACTIVE VIEW PORT */}
       <div className={`flex-1 flex flex-col relative overflow-hidden h-full w-full transition-colors duration-500 ${(activeScreen === 'splash' || isCheckingSession) ? 'bg-black' : 'bg-white'}`}>
         {/* Global Offline Recovery Banner */}
@@ -284,6 +339,16 @@ export default function App() {
           onLogout={handleLogout}
         />
       )}
+    </>
+  );
+
+  return shouldRenderPhoneFrame ? (
+    <PhoneFrame activeScreen={activeScreen} onScreenChange={handleScreenChange}>
+      {appContent}
     </PhoneFrame>
+  ) : (
+    <div className="min-h-screen w-full flex flex-col bg-neutral-950">
+      {appContent}
+    </div>
   );
 }
