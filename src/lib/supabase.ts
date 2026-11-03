@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // @ts-ignore
 const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
 // @ts-ignore
-const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
 // Clean the URL of any trailing paths (like /rest/v1), trailing slashes, or accidental whitespace
 let cleanUrl = rawUrl.trim();
