@@ -133,6 +133,7 @@ export default function App() {
   const isAppSection = [
     'dashboard',
     'workout',
+    'workout_history',
     'nutrition',
     'progress',
     'calendar',

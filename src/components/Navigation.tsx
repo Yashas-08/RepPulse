@@ -32,6 +32,9 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   };
 
   const isTabActive = (tabId: ScreenType) => {
+    if (tabId === 'workout' && activeTab === 'workout_history') return true;
+    if (tabId === 'dashboard' && (activeTab === 'calendar' || activeTab === 'notifications')) return true;
+    if (tabId === 'profile' && (activeTab === 'friends' || activeTab === 'settings')) return true;
     return tabId === activeTab;
   };
 
