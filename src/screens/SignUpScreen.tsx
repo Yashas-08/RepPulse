@@ -5,6 +5,7 @@ import { Button, Input } from '../components/UI';
 import { Logo } from '../components/Logo';
 import { ScreenType } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { signInWithGoogle } from '../services/authService';
 
 // Custom SafeAreaView to emulate React Native safe layout container
 const SafeAreaView: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => {
@@ -43,6 +44,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onGuestL
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -56,6 +58,35 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onGuestL
       }
     }
     return msg.trim();
+  };
+
+  const handleGoogleSignUp = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (!isSupabaseConfigured) {
+      setErrorMsg('Supabase is not configured yet. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your project settings.');
+      return;
+    }
+
+    setGoogleLoading(true);
+
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        const rawMsg = error.message || '';
+        if (rawMsg.toLowerCase().includes('fetch') || rawMsg.toLowerCase().includes('network')) {
+          setErrorMsg('Unable to connect to Google authentication server. Please check your network connection.');
+        } else {
+          setErrorMsg(rawMsg || 'Failed to initialize Google Sign-In. Please try again.');
+        }
+        setGoogleLoading(false);
+      }
+    } catch (err: any) {
+      const rawMsg = err?.message || '';
+      setErrorMsg(rawMsg || 'An unexpected error occurred during Google Sign-In.');
+      setGoogleLoading(false);
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -289,6 +320,53 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onGuestL
               </button>
             )}
           </form>
+
+          {/* Divider UI */}
+          <div className="flex items-center gap-4 my-5">
+            <div className="flex-1 h-[1px] bg-border-cool" />
+            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
+              or
+            </span>
+            <div className="flex-1 h-[1px] bg-border-cool" />
+          </div>
+
+          {/* Continue with Google */}
+          <button
+            type="button"
+            onClick={handleGoogleSignUp}
+            disabled={loading || googleLoading}
+            className="w-full h-[52px] bg-white border border-border-cool text-primary-text rounded-2xl text-sm font-semibold hover:bg-neutral-50 transition-all flex items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+          >
+            {googleLoading ? (
+              <span className="flex items-center gap-2 text-neutral-600">
+                <span className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-800 rounded-full animate-spin" />
+                Connecting to Google...
+              </span>
+            ) : (
+              <>
+                {/* Simple Google SVG Icon */}
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 15 1 12 1 7.24 1 3.2 3.73 1.24 7.72l3.88 3c.92-2.76 3.52-4.68 6.88-4.68z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.44c-.28 1.47-1.11 2.71-2.36 3.55l3.66 2.84c2.14-1.97 3.75-4.87 3.75-8.48z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.12 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28l-3.88-3C.44 8.24 0 10.07 0 12s.44 3.76 1.24 5.28l3.88-3z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.66-2.84c-1.01.67-2.32 1.08-3.9 1.08-3.36 0-5.96-1.92-6.88-4.68l-3.88 3C3.2 20.27 7.24 23 12 23z"
+                  />
+                </svg>
+                Continue with Google
+              </>
+            )}
+          </button>
 
           {/* Navigation Section below Create Account button */}
           <div className="text-center mt-5">

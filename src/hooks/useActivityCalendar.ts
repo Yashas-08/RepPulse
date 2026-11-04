@@ -150,6 +150,9 @@ export function useActivityCalendar({ userId }: UseActivityCalendarProps) {
       workouts: [],
       nutrition: null,
       progress: [],
+      hasWorkout: false,
+      hasNutrition: false,
+      hasProgress: false,
     };
   }, [activityMap, selectedDateStr]);
 

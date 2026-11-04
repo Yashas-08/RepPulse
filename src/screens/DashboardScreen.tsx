@@ -390,7 +390,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ currentUser, o
 
               {/* 4. RECENT ACTIVITY (MERGED LATEST WORKOUT + RECENT ACTIVITY) */}
               <RecentActivityCard
-                latestWorkout={dashboardData?.latestWorkout?.rawRecord || recentCompletedWorkouts[0] || null}
+                latestWorkout={dashboardData?.latestWorkout || recentCompletedWorkouts[0] || null}
                 onViewHistory={() => onNavigate && onNavigate('workout_history')}
                 onSelectWorkout={() => onNavigate && onNavigate('workout_history')}
               />

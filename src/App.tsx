@@ -20,6 +20,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NotFoundScreen } from './screens/NotFoundScreen';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { isOAuthCallback, handleAuthCallback, ensureUserProfile, signOut } from './services/authService';
 
 const isTouchCapableDevice = () => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
@@ -37,6 +38,7 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState<ScreenType>('splash');
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [authError, setAuthError] = useState<string>('');
   const [lockedBanner, setLockedBanner] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [shouldRenderPhoneFrame, setShouldRenderPhoneFrame] = useState(() => !isTouchCapableDevice());
@@ -162,14 +164,31 @@ export default function App() {
           throw new Error('Supabase client is not available');
         }
 
-        const sessionRes = await supabase.auth.getSession().catch(() => ({ data: { session: null }, error: null }));
-        const session = sessionRes?.data?.session;
-        if (session?.user) {
-          setCurrentUser(session.user);
-          targetScreen = 'dashboard';
+        // 1. Check for incoming OAuth redirect callback
+        if (isOAuthCallback()) {
+          const callbackResult = await handleAuthCallback();
+          if (callbackResult.success && callbackResult.user) {
+            setCurrentUser(callbackResult.user);
+            targetScreen = 'dashboard';
+          } else {
+            setCurrentUser(null);
+            if (callbackResult.error) {
+              setAuthError(callbackResult.error);
+            }
+            targetScreen = 'login';
+          }
         } else {
-          setCurrentUser(null);
-          targetScreen = 'login';
+          // 2. Standard persistent session check
+          const sessionRes = await supabase.auth.getSession().catch(() => ({ data: { session: null }, error: null }));
+          const session = sessionRes?.data?.session;
+          if (session?.user) {
+            setCurrentUser(session.user);
+            await ensureUserProfile(session.user);
+            targetScreen = 'dashboard';
+          } else {
+            setCurrentUser(null);
+            targetScreen = 'login';
+          }
         }
       } catch (err) {
         console.warn('Network issue during initial session check:', err);
@@ -189,14 +208,18 @@ export default function App() {
     // Set up the realtime Auth state listener
     let subscription: any = null;
     try {
-      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
         const user = session?.user || null;
         setCurrentUser(user);
 
         if (event === 'SIGNED_IN' && user) {
+          await ensureUserProfile(user);
           setActiveScreen('dashboard');
         } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
           setActiveScreen('login');
+        } else if (event === 'TOKEN_REFRESHED' && user) {
+          setCurrentUser(user);
         }
       });
       subscription = data?.subscription;
@@ -222,7 +245,8 @@ export default function App() {
     setActiveScreen(screen);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     setCurrentUser(null);
     setActiveScreen('login');
   };
@@ -249,7 +273,7 @@ export default function App() {
       case 'splash':
         return <SplashScreen />;
       case 'login':
-        return <LoginScreen onNavigate={handleScreenChange} onGuestLogin={handleGuestLogin} />;
+        return <LoginScreen onNavigate={handleScreenChange} onGuestLogin={handleGuestLogin} initialError={authError} />;
       case 'signup':
         return <SignUpScreen onNavigate={handleScreenChange} onGuestLogin={handleGuestLogin} />;
       case 'dashboard':

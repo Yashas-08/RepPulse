@@ -4,7 +4,7 @@ import { Trophy, Sparkles, X } from 'lucide-react';
 
 interface PersonalRecordCardProps {
   exerciseName: string;
-  recordType: 'Highest Weight' | 'Highest Reps' | 'Highest Total Volume' | 'Personal Record';
+  recordType: 'Highest Weight' | 'Highest Reps' | 'Highest Total Volume' | 'Highest Volume' | 'Personal Record';
   value: string;
   onDismiss?: () => void;
 }

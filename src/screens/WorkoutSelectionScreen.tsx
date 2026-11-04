@@ -5,6 +5,7 @@ import { WORKOUT_CATEGORIES, WorkoutCategory } from '../constants/workoutCategor
 import { WorkoutCategoryCard } from '../components/WorkoutCategoryCard';
 
 interface WorkoutSelectionScreenProps {
+  currentUser?: any;
   onSelectCategory: (category: WorkoutCategory) => void;
 }
 
