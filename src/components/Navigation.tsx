@@ -39,17 +39,17 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   };
 
   return (
-    <nav className="h-16 bg-white border-t border-border-cool flex items-center justify-around px-2 relative z-40 select-none pb-safe">
+    <nav className="relative z-40 grid min-h-[calc(4rem+env(safe-area-inset-bottom))] w-full shrink-0 grid-cols-5 items-stretch border-t border-border-cool bg-white px-1 pt-1 pb-[env(safe-area-inset-bottom)] select-none">
       {tabs.map((tab) => {
         const active = isTabActive(tab.id);
         return (
           <button
             key={tab.id}
             onClick={() => handleTabClick(tab.id)}
-            className="flex flex-col items-center justify-center flex-1 h-full py-1 text-center cursor-pointer transition-all active:scale-95"
+            className="flex min-w-0 w-full flex-col items-center justify-center gap-0.5 py-1 text-center cursor-pointer transition-all active:scale-95"
           >
             <div className={`relative p-1 transition-colors duration-150 ${active ? 'text-primary-text' : 'text-secondary-text'}`}>
-              <tab.icon size={24} strokeWidth={active ? 2.2 : 1.8} />
+              <tab.icon size={22} strokeWidth={active ? 2.2 : 1.8} />
               {active && (
                 <motion.div
                   layoutId="activeTabIndicator"
@@ -58,7 +58,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                 />
               )}
             </div>
-            <span className={`text-[10px] font-semibold mt-0.5 transition-colors duration-150 uppercase tracking-widest ${active ? 'text-primary-text' : 'text-secondary-text'}`}>
+            <span className={`max-w-full whitespace-nowrap text-[9px] min-[380px]:text-[10px] font-semibold leading-none transition-colors duration-150 uppercase tracking-normal ${active ? 'text-primary-text' : 'text-secondary-text'}`}>
               {tab.label}
             </span>
           </button>

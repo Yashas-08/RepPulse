@@ -306,7 +306,7 @@ export default function App() {
   const appContent = (
     <>
       {/* MAIN ACTIVE VIEW PORT */}
-      <div className={`flex-1 flex flex-col relative overflow-hidden h-full w-full transition-colors duration-500 ${(activeScreen === 'splash' || isCheckingSession) ? 'bg-black' : 'bg-white'}`}>
+      <div className={`relative flex min-h-0 w-full flex-1 flex-col overflow-hidden transition-colors duration-500 ${(activeScreen === 'splash' || isCheckingSession) ? 'bg-black' : 'bg-white'}`}>
         {/* Global Offline Recovery Banner */}
         <AnimatePresence>
           {isOffline && !isCheckingSession && activeScreen !== 'splash' && (
@@ -334,7 +334,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className={`flex-1 flex flex-col h-full w-full overflow-hidden transition-colors duration-500 ${(activeScreen === 'splash' || isCheckingSession) ? 'bg-black' : 'bg-white'}`}
+            className={`flex min-h-0 w-full flex-1 flex-col overflow-hidden transition-colors duration-500 ${(activeScreen === 'splash' || isCheckingSession) ? 'bg-black' : 'bg-white'}`}
           >
             {renderScreen()}
           </motion.div>
@@ -372,7 +372,7 @@ export default function App() {
       {appContent}
     </PhoneFrame>
   ) : (
-    <div className="min-h-screen w-full flex flex-col bg-neutral-950">
+    <div className="flex h-dvh min-h-dvh w-full flex-col overflow-hidden bg-white">
       {appContent}
     </div>
   );

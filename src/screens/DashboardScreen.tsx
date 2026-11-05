@@ -222,20 +222,20 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ currentUser, o
   }, [workouts]);
 
   return (
-    <div className="flex-1 flex flex-col bg-white h-full relative overflow-hidden select-none">
+    <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-white select-none">
       
       {/* 1. TOP APP BAR */}
-      <header className="h-14 bg-white border-b border-border-cool flex items-center justify-between px-5 sticky top-0 z-40 shrink-0">
+      <header className="sticky top-0 z-40 flex h-14 min-h-14 w-full shrink-0 items-center justify-between gap-2 border-b border-border-cool bg-white px-3 min-[380px]:px-4 sm:px-5">
         {/* RepPulse logo */}
-        <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>
+        <div className="flex min-w-0 shrink items-center gap-1.5 cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>
           <Logo size={28} simplified={true} variant="light" />
-          <span className="font-display font-black text-sm text-neutral-900 tracking-tight uppercase">
+          <span className="whitespace-nowrap font-display font-black text-sm text-neutral-900 tracking-tight uppercase">
             RepPulse
           </span>
         </div>
 
         {/* Right Actions: Activity Calendar icon, Notification icon & Profile Avatar */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-1.5 min-[380px]:gap-2.5">
           {/* Calendar icon */}
           <button 
             onClick={() => onNavigate && onNavigate('calendar')}
@@ -279,7 +279,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ currentUser, o
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
-        className="flex-1 overflow-y-auto no-scrollbar flex flex-col pb-24"
+        className="min-h-0 flex-1 overflow-y-auto no-scrollbar flex flex-col pb-6"
       >
         {/* PULL-TO-REFRESH HEADER */}
         <div 
