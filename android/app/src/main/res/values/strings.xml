@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RepPulse</string>
+    <string name="title_activity_main">RepPulse</string>
+    <string name="package_name">com.yashas.reppulse</string>
+    <string name="custom_url_scheme">com.yashas.reppulse</string>
+</resources>

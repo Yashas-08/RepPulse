@@ -1,4 +1,6 @@
 import { User } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export interface AuthCallbackResult {
@@ -11,7 +13,15 @@ export interface AuthCallbackResult {
  * Checks whether the current window URL represents an incoming Supabase OAuth callback.
  * Catches /auth/callback path, authorization codes (?code=...), or hash fragments (#access_token=... / #error=...).
  */
-export function isOAuthCallback(): boolean {
+export function isOAuthCallback(customUrl?: string): boolean {
+  if (customUrl) {
+    return (
+      customUrl.includes('/auth/callback') ||
+      customUrl.includes('code=') ||
+      customUrl.includes('access_token=') ||
+      customUrl.includes('error=')
+    );
+  }
   if (typeof window === 'undefined') return false;
   const hasCallbackPath = window.location.pathname.includes('/auth/callback');
   const searchParams = new URLSearchParams(window.location.search);
@@ -40,6 +50,7 @@ export function cleanAuthUrl(): void {
 
 /**
  * Initiates Google OAuth authentication using Supabase.
+ * Supports both web browser redirects and native Android deep-linking via system browser/Chrome Custom Tabs.
  */
 export async function signInWithGoogle(options?: { redirectTo?: string }): Promise<{ error: Error | null }> {
   if (!isSupabaseConfigured || !supabase) {
@@ -49,23 +60,54 @@ export async function signInWithGoogle(options?: { redirectTo?: string }): Promi
   }
 
   try {
-    const redirectTo = options?.redirectTo || `${window.location.origin}/auth/callback`;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'select_account',
+    const isNative = Capacitor.isNativePlatform();
+    const defaultRedirect = isNative
+      ? 'com.yashas.reppulse://auth/callback'
+      : `${window.location.origin}/auth/callback`;
+    const redirectTo = options?.redirectTo || defaultRedirect;
+
+    if (isNative) {
+      // In Capacitor native app: obtain OAuth URL without in-webview redirect to avoid Google's disallowed_useragent block
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      return { error };
+      if (error) {
+        return { error };
+      }
+
+      if (data?.url) {
+        await Browser.open({ url: data.url, windowName: '_self' });
+      }
+
+      return { error: null };
+    } else {
+      // Standard web browser flow
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      return { error: null };
     }
-
-    return { error: null };
   } catch (err: any) {
     return { error: err instanceof Error ? err : new Error(String(err)) };
   }
@@ -82,7 +124,7 @@ let activeCallbackPromise: Promise<AuthCallbackResult> | null = null;
  * - Syncs/ensures the user profile without duplicating or overwriting existing user records
  * - Cleans the browser URL
  */
-export async function handleAuthCallback(): Promise<AuthCallbackResult> {
+export async function handleAuthCallback(customUrl?: string): Promise<AuthCallbackResult> {
   if (activeCallbackPromise) {
     return activeCallbackPromise;
   }
@@ -90,6 +132,9 @@ export async function handleAuthCallback(): Promise<AuthCallbackResult> {
   activeCallbackPromise = (async (): Promise<AuthCallbackResult> => {
     if (!isSupabaseConfigured || !supabase) {
       cleanAuthUrl();
+      if (Capacitor.isNativePlatform()) {
+        Browser.close().catch(() => {});
+      }
       return {
         success: false,
         user: null,
@@ -98,9 +143,31 @@ export async function handleAuthCallback(): Promise<AuthCallbackResult> {
     }
 
     try {
-      const searchParams = new URLSearchParams(window.location.search);
-      const hash = window.location.hash ? window.location.hash.substring(1) : '';
-      const hashParams = new URLSearchParams(hash);
+      let searchParams: URLSearchParams;
+      let hashParams: URLSearchParams;
+
+      if (customUrl) {
+        try {
+          const parsed = new URL(customUrl);
+          searchParams = parsed.searchParams;
+          const hash = parsed.hash ? parsed.hash.substring(1) : '';
+          hashParams = new URLSearchParams(hash);
+        } catch {
+          const [baseAndQuery, hashPart] = customUrl.split('#');
+          const queryPart = baseAndQuery.includes('?') ? baseAndQuery.split('?')[1] : '';
+          searchParams = new URLSearchParams(queryPart);
+          hashParams = new URLSearchParams(hashPart || '');
+        }
+      } else {
+        searchParams = new URLSearchParams(window.location.search);
+        const hash = window.location.hash ? window.location.hash.substring(1) : '';
+        hashParams = new URLSearchParams(hash);
+      }
+
+      // If running on native platform, ensure the browser window/custom tab closes
+      if (Capacitor.isNativePlatform()) {
+        Browser.close().catch(() => {});
+      }
 
       // 1. Detect OAuth errors
       const errorParam = searchParams.get('error') || hashParams.get('error');

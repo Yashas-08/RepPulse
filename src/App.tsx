@@ -21,8 +21,14 @@ import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NotFoundScreen } from './screens/NotFoundScreen';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { isOAuthCallback, handleAuthCallback, ensureUserProfile, signOut } from './services/authService';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 const isTouchCapableDevice = () => {
+  if (Capacitor.isNativePlatform()) {
+    return true;
+  }
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return false;
   }
@@ -42,6 +48,73 @@ export default function App() {
   const [lockedBanner, setLockedBanner] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [shouldRenderPhoneFrame, setShouldRenderPhoneFrame] = useState(() => !isTouchCapableDevice());
+
+  // Native Capacitor platform setup: status bar, deep-link routing & back button handling
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    // 1. Configure status bar
+    StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+    StatusBar.setBackgroundColor({ color: '#FFFFFF' }).catch(() => {});
+
+    // 2. Listen for deep links (e.g. Google OAuth callback)
+    const urlListenerPromise = CapApp.addListener('appUrlOpen', async (data) => {
+      console.log('App received deep link:', data.url);
+      if (isOAuthCallback(data.url)) {
+        setIsCheckingSession(true);
+        const result = await handleAuthCallback(data.url);
+        if (result.success && result.user) {
+          setCurrentUser(result.user);
+          setActiveScreen('dashboard');
+        } else {
+          setCurrentUser(null);
+          if (result.error) {
+            setAuthError(result.error);
+          }
+          setActiveScreen('login');
+        }
+        setIsCheckingSession(false);
+      }
+    });
+
+    // 3. Check if app was launched via deep link
+    CapApp.getLaunchUrl().then(async (launchUrl) => {
+      if (launchUrl?.url && isOAuthCallback(launchUrl.url)) {
+        setIsCheckingSession(true);
+        const result = await handleAuthCallback(launchUrl.url);
+        if (result.success && result.user) {
+          setCurrentUser(result.user);
+          setActiveScreen('dashboard');
+        } else {
+          setCurrentUser(null);
+          if (result.error) {
+            setAuthError(result.error);
+          }
+          setActiveScreen('login');
+        }
+        setIsCheckingSession(false);
+      }
+    }).catch(() => {});
+
+    // 4. Hardware back button handling on Android
+    const backListenerPromise = CapApp.addListener('backButton', () => {
+      setActiveScreen((prev) => {
+        if (prev === 'dashboard' || prev === 'login') {
+          CapApp.exitApp();
+          return prev;
+        }
+        if (prev === 'signup') {
+          return 'login';
+        }
+        return 'dashboard';
+      });
+    });
+
+    return () => {
+      urlListenerPromise.then((handle) => handle.remove()).catch(() => {});
+      backListenerPromise.then((handle) => handle.remove()).catch(() => {});
+    };
+  }, []);
 
   // Monitor network connectivity changes & handle unhandled network rejections
   useEffect(() => {
