@@ -8,54 +8,33 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 const assetsDir = path.resolve(projectRoot, 'assets');
 
-// Source icon selected by user in dist (or fallback to public)
-let sourceIconPath = path.resolve(projectRoot, 'dist', 'icon-512.png');
-if (!fs.existsSync(sourceIconPath)) {
-  sourceIconPath = path.resolve(projectRoot, 'public', 'icon-512.png');
+// Source: The original 1024x1024 favicon master artwork
+const sourcePath = path.resolve(assetsDir, 'source-favicon-1024.png');
+if (!fs.existsSync(sourcePath)) {
+  throw new Error(`Source favicon file not found at: ${sourcePath}`);
 }
 
-if (!fs.existsSync(sourceIconPath)) {
-  console.error(`Source icon not found at: ${sourceIconPath}`);
-  process.exit(1);
-}
+async function run() {
+  console.log(`Processing original favicon artwork from: ${sourcePath}`);
 
-if (!fs.existsSync(assetsDir)) {
-  fs.mkdirSync(assetsDir, { recursive: true });
-}
+  // 1. Crop symmetrically around the circular logo mark:
+  // Circular arcs vertical range: y=172 to y=812 (height 640px, center y=492)
+  // Circular arcs horizontal range: x=219 to x=810 (width 592px, center x=514.5)
+  // Italic text "REPPULSE" horizontal range: x=178 to x=868
+  // Symmetrical crop centered at (515, 492):
+  const cropLeft = 157;
+  const cropTop = 165;
+  const cropWidth = 716;  // 157 + 716/2 = 515 (exact center of arcs)
+  const cropHeight = 654; // 165 + 654/2 = 492 (exact center of arcs)
 
-console.log(`Using source logo from: ${sourceIconPath}`);
+  console.log(`Cropping logo region: left=${cropLeft}, top=${cropTop}, width=${cropWidth}, height=${cropHeight}`);
 
-async function extractTransparentLogo() {
-  const image = sharp(sourceIconPath);
-  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
-
-  // 1. Find bounding box of white/non-black logo
-  let minX = info.width, maxX = 0, minY = info.height, maxY = 0;
-  for (let y = 0; y < info.height; y++) {
-    for (let x = 0; x < info.width; x++) {
-      const idx = (y * info.width + x) * info.channels;
-      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-      if (r > 15 || g > 15 || b > 15) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-
-  const cropX = Math.max(0, minX - 1);
-  const cropY = Math.max(0, minY - 1);
-  const cropW = Math.min(info.width - cropX, (maxX - minX + 1) + 2);
-  const cropH = Math.min(info.height - cropY, (maxY - minY + 1) + 2);
-
-  // 2. Crop to bounding box
-  const cropped = await sharp(sourceIconPath)
-    .extract({ left: cropX, top: cropY, width: cropW, height: cropH })
+  const cropped = await sharp(sourcePath)
+    .extract({ left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight })
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  // 3. Convert black background to transparent alpha channel with pure white foreground
+  // 2. Convert to RGBA buffer: pure white logo with antialiased alpha, transparent background
   const rgbaBuffer = Buffer.alloc(cropped.info.width * cropped.info.height * 4);
   for (let i = 0; i < cropped.info.width * cropped.info.height; i++) {
     const srcIdx = i * cropped.info.channels;
@@ -65,14 +44,13 @@ async function extractTransparentLogo() {
     const g = cropped.data[srcIdx + 1];
     const b = cropped.data[srcIdx + 2];
 
-    // Compute luminance for anti-aliasing
-    const luma = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-    const alpha = luma < 10 ? 0 : luma;
+    const luma = Math.max(r, g, b);
+    const alpha = luma < 15 ? 0 : luma;
 
-    rgbaBuffer[destIdx] = 255;     // R
-    rgbaBuffer[destIdx + 1] = 255; // G
-    rgbaBuffer[destIdx + 2] = 255; // B
-    rgbaBuffer[destIdx + 3] = alpha; // A
+    rgbaBuffer[destIdx] = 255;       // R
+    rgbaBuffer[destIdx + 1] = 255;   // G
+    rgbaBuffer[destIdx + 2] = 255;   // B
+    rgbaBuffer[destIdx + 3] = alpha; // Alpha
   }
 
   const transparentLogo = sharp(rgbaBuffer, {
@@ -83,28 +61,29 @@ async function extractTransparentLogo() {
     },
   });
 
-  return { transparentLogo, width: cropped.info.width, height: cropped.info.height };
-}
+  // 3. Scale down uniformly to fit inside Android Adaptive Icon safe zone:
+  // Android safe zone is 66dp of 108dp = 61.1% of canvas = 625px diameter.
+  // Original arcs diameter is 640px.
+  // We scale to arcs diameter = 540px (scale factor s = 540 / 640 = 0.84375).
+  // This leaves 42.5px safe margin from the safe zone edge, preventing any clipping on any device.
+  const scale = 540 / 640;
+  const targetW = Math.round(cropWidth * scale);   // ~604px
+  const targetH = Math.round(cropHeight * scale);  // ~552px
 
-async function run() {
-  const { transparentLogo, width: logoW, height: logoH } = await extractTransparentLogo();
-
-  // Scale logo to width ~560px (target safe diameter in 1024x1024 adaptive icon is <= 625px)
-  const targetLogoWidth = 560;
-  const targetLogoHeight = Math.round(logoH * (targetLogoWidth / logoW));
+  console.log(`Resizing logo to fit safe zone: ${targetW}x${targetH} (scale=${scale.toFixed(4)})`);
 
   const resizedLogoBuffer = await transparentLogo
-    .resize(targetLogoWidth, targetLogoHeight, {
+    .resize(targetW, targetH, {
       fit: 'contain',
       kernel: sharp.kernel.lanczos3,
     })
-    .png()
+    .png({ compressionLevel: 9 })
     .toBuffer();
 
-  const offsetX = Math.round((1024 - targetLogoWidth) / 2);
-  const offsetY = Math.round((1024 - targetLogoHeight) / 2);
+  const offsetX = Math.round((1024 - targetW) / 2); // 210
+  const offsetY = Math.round((1024 - targetH) / 2); // 236
 
-  // 1. Generate assets/icon-background.png (1024x1024 solid black #000000)
+  // 4. Generate assets/icon-background.png (1024x1024 solid black #000000)
   const bgPath = path.join(assetsDir, 'icon-background.png');
   await sharp({
     create: {
@@ -114,11 +93,11 @@ async function run() {
       background: { r: 0, g: 0, b: 0, alpha: 1 },
     },
   })
-    .png()
+    .png({ compressionLevel: 9 })
     .toFile(bgPath);
   console.log(`Created ${bgPath}`);
 
-  // 2. Generate assets/icon-foreground.png (1024x1024 transparent with centered white logo)
+  // 5. Generate assets/icon-foreground.png (1024x1024 transparent with centered logo)
   const fgPath = path.join(assetsDir, 'icon-foreground.png');
   await sharp({
     create: {
@@ -135,11 +114,11 @@ async function run() {
         top: offsetY,
       },
     ])
-    .png()
+    .png({ compressionLevel: 9 })
     .toFile(fgPath);
   console.log(`Created ${fgPath}`);
 
-  // 3. Generate assets/icon-only.png (1024x1024 solid black background with centered white logo)
+  // 6. Generate assets/icon-only.png (1024x1024 solid black with centered logo)
   const iconOnlyPath = path.join(assetsDir, 'icon-only.png');
   await sharp({
     create: {
@@ -156,11 +135,11 @@ async function run() {
         top: offsetY,
       },
     ])
-    .png()
+    .png({ compressionLevel: 9 })
     .toFile(iconOnlyPath);
   console.log(`Created ${iconOnlyPath}`);
 
-  console.log('Successfully prepared all 3 source assets from dist/icon-512.png!');
+  console.log('Successfully generated all 3 icon assets directly from original favicon artwork!');
 }
 
 run().catch((err) => {

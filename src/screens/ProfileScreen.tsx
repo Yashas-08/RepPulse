@@ -754,7 +754,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
                 >
                   <div className="flex items-center gap-3">
                     <Users size={14} className="text-neutral-500" />
-                    <span className="text-xs font-bold text-neutral-900 uppercase tracking-wide">
+                    <span className="text-xs font-bold text-neutral-900 tracking-wide">
                       Friends
                     </span>
                   </div>
@@ -769,7 +769,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
                 >
                   <div className="flex items-center gap-3">
                     <Lock size={14} className="text-neutral-500" />
-                    <span className="text-xs font-bold text-neutral-900 uppercase tracking-wide">
+                    <span className="text-xs font-bold text-neutral-900 tracking-wide">
                       Change Password
                     </span>
                   </div>
@@ -784,7 +784,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
                 >
                   <div className="flex items-center gap-3">
                     <Shield size={14} className="text-neutral-500" />
-                    <span className="text-xs font-bold text-neutral-900 uppercase tracking-wide">
+                    <span className="text-xs font-bold text-neutral-900 tracking-wide">
                       Privacy Policy
                     </span>
                   </div>
@@ -799,8 +799,8 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
                 >
                   <div className="flex items-center gap-3">
                     <FileText size={14} className="text-neutral-500" />
-                    <span className="text-xs font-bold text-neutral-900 uppercase tracking-wide">
-                      Terms & Conditions
+                    <span className="text-xs font-bold text-neutral-900 tracking-wide">
+                      Terms of Service
                     </span>
                   </div>
                   <ChevronRight size={14} className="text-neutral-400" />
@@ -814,7 +814,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
                 >
                   <div className="flex items-center gap-3">
                     <Info size={14} className="text-neutral-500" />
-                    <span className="text-xs font-bold text-neutral-900 uppercase tracking-wide">
+                    <span className="text-xs font-bold text-neutral-900 tracking-wide">
                       About RepPulse
                     </span>
                   </div>
@@ -829,8 +829,8 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
                 >
                   <div className="flex items-center gap-3">
                     <LogOut size={14} className="text-danger-coral" />
-                    <span className="text-xs font-bold text-danger-coral uppercase tracking-wide">
-                      Logout Account
+                    <span className="text-xs font-bold text-danger-coral tracking-wide">
+                      Log Out
                     </span>
                   </div>
                   <ChevronRight size={14} className="text-neutral-400" />
@@ -1132,7 +1132,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
         )}
       </AnimatePresence>
 
-      {/* MODAL 4: TERMS & CONDITIONS */}
+      {/* MODAL 4: TERMS OF SERVICE */}
       <AnimatePresence>
         {isTermsOpen && (
           <>
@@ -1155,7 +1155,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
               <div className="flex items-center justify-between pb-3 border-b border-neutral-100 mb-4 shrink-0">
                 <div>
                   <h4 className="font-display font-bold text-base text-neutral-900 uppercase tracking-wide">
-                    Terms & Conditions
+                    Terms of Service
                   </h4>
                   <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-bold">
                     Rules and responsibilities of the athlete

@@ -1,6 +1,0 @@
-{
-  "name": "RepPulse",
-  "description": "Every Rep Counts. A premium mobile fitness companion for tracking workouts, nutrition, and progress.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
